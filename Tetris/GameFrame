@@ -1,0 +1,25 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import javax.swing.*;
+
+public class GameFrame extends JFrame {
+	public static ScorePanel sPanel = new ScorePanel(); // 점수 관리 ScorePanel
+	public static GamePanel gPanel = new GamePanel(sPanel); 
+	
+	public GameFrame() {
+		setTitle("Tetris");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		Container c = getContentPane(); // 프레임으로부터 컨텐트팬 알아내기
+		c.add(sPanel, BorderLayout.NORTH);
+		c.add(gPanel, BorderLayout.CENTER);
+		
+		setResizable(false); // 창 조절 불가	
+		setSize(600,800);
+		setVisible(true);
+	}
+	
+	public static void main(String[] args) {
+		new GameFrame();
+	}
+}
