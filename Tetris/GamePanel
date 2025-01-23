@@ -1,0 +1,154 @@
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+public class GamePanel extends JPanel {
+    private JLabel[] labels = new JLabel[150]; // 15x10 격자를 위한 JLabel 배열
+    private int[] columnHeights = new int[10]; // 각 열의 현재 높이 (0 ~ 14)
+    private int currentIndex = 0; // 현재 선택된 JLabel의 인덱스
+    private boolean running = true; // 쓰레드 실행 여부를 제어하는 플래그
+    private int rows = 15;
+    private int cols = 10;
+    private int score = 0; // 점수
+
+    private ScorePanel scorePanel; // ScorePanel 객체
+
+    public GamePanel(ScorePanel scorePanel) {
+        this.scorePanel = scorePanel; // ScorePanel 객체 받아오기
+        setLayout(new GridLayout(rows, cols, 1, 1)); // 15x10 격자, hGap = 1, vGap = 1 설정
+        setBackground(Color.LIGHT_GRAY); // 패널 배경색 설정
+
+        // JLabel 배열 초기화
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = new JLabel();
+            labels[i].setOpaque(true); // JLabel 배경 불투명 설정
+            labels[i].setBackground(Color.WHITE); // 기본 배경색은 흰색
+            add(labels[i]); // JLabel을 패널에 추가
+        }
+
+        NewBlock(); // 첫 블록 생성
+
+        // 아래로 이동시키는 TimeThread 시작
+        TimeThread thread = new TimeThread();
+        thread.start();
+
+        // 키보드 리스너 추가
+        addKeyListener(new MyKeyListener());
+        setFocusable(true);
+    }
+    
+    private Color currentColor;
+    
+    // 새 블록 생성
+    private void NewBlock() {
+        int randomColumn = (int) (Math.random() * cols); // 0부터 9까지 랜덤 열 선택
+        if (columnHeights[randomColumn] >= rows) {
+            running = false; // 열이 가득 차면 게임 종료
+            System.out.println("게임 종료: 블록이 맨 위까지 쌓였습니다!");
+            return;
+        }
+        currentIndex = randomColumn; // 새 블록의 인덱스 설정
+        int r = (int)(Math.random()*256); // red 성분의 랜덤 값
+        int g = (int)(Math.random()*256); // green 성분의 랜덤 값
+        int b = (int)(Math.random()*256); // blue 성분의 랜덤 값
+        
+        currentColor = new Color(r,g,b);
+        
+        labels[currentIndex].setBackground(currentColor); // 블록 생성
+        score++; // 블록이 생성될 때마다 점수 증가
+        updateScore(); // 점수 업데이트
+    }
+
+    // 블록 아래로 이동
+    private void moveDown() {
+        int row = currentIndex / cols; // 현재 행 번호
+        int col = currentIndex % cols; // 현재 열 번호
+
+        // 다음 행으로 이동 가능 여부 확인
+        if (row < rows - 1 && labels[currentIndex + cols].getBackground().equals(Color.WHITE)) {
+            swapLabels(currentIndex, currentIndex + cols); // 아래로 이동
+            currentIndex += cols;
+        } else {
+            // 바닥에 도달하거나 다른 블록 위에 멈추면 블록 고정
+            columnHeights[col]++;
+            checkColumnFull(); // 열이 가득 찼는지 확인
+            NewBlock(); // 새로운 블록 생성
+        }
+    }
+
+    // 특정 열이 모두 채워졌는지 확인
+    private void checkColumnFull() {
+        for (int col = 0; col < cols; col++) { // 각 열을 검사
+            boolean columnFull = true;
+            for (int row = 0; row < rows; row++) {
+                if (labels[row * cols + col].getBackground().equals(Color.WHITE)) {
+                    columnFull = false; // 열에 빈 칸이 있으면 가득 차지 않음
+                    break;
+                }
+            }
+            if (columnFull) {
+                running = false; // 게임 종료
+                System.out.println("게임 종료: 열이 가득 찼습니다!");
+                return;
+            }
+        }
+    }
+
+    // 두 JLabel의 색상을 교환하는 메서드
+    private void swapLabels(int index1, int index2) {
+        labels[index1].setBackground(Color.WHITE); // 이전 위치 초기화
+        labels[index2].setBackground(currentColor); // 새로운 위치로 블록 이동
+    }
+
+    // 점수 업데이트 메서드
+    private void updateScore() {
+        scorePanel.updateScore(score); // ScorePanel에 점수 업데이트
+    }
+
+    class MyKeyListener extends KeyAdapter {
+        @Override
+        public void keyPressed(KeyEvent e) {
+            int keyCode = e.getKeyCode();
+
+            int row = currentIndex / cols; // 행 번호
+            int col = currentIndex % cols; // 열 번호
+
+            // 맨 아래 행인지 확인
+            boolean isBottomRow = (row == rows - 1);
+
+            switch (keyCode) {
+                case KeyEvent.VK_LEFT:
+                    if (!isBottomRow && col > 0) { // 맨 아래 행에서는 좌우 이동 금지
+                        swapLabels(currentIndex, currentIndex - 1); // 왼쪽 JLabel과 교환
+                        currentIndex -= 1; // 인덱스 업데이트
+                    }
+                    break;
+
+                case KeyEvent.VK_RIGHT:
+                    if (!isBottomRow && col < cols - 1) { // 맨 아래 행에서는 좌우 이동 금지
+                        swapLabels(currentIndex, currentIndex + 1); // 오른쪽 JLabel과 교환
+                        currentIndex += 1; // 인덱스 업데이트
+                    }
+                    break;
+            }
+        }
+    }
+
+    class TimeThread extends Thread {
+        @Override
+        public void run() {
+            while (running) {
+                try {
+                    Thread.sleep(300); 
+                } catch (InterruptedException e) {
+                    return;
+                }
+                moveDown(); // 블록 아래로 이동
+            }
+        }
+    }
+}
