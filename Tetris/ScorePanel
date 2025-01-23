@@ -1,0 +1,21 @@
+import java.awt.Color;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+class ScorePanel extends JPanel {
+    private JLabel scoreLabel;
+
+    public ScorePanel() {
+        setBackground(Color.YELLOW);
+        JLabel title = new JLabel("미니 테트리스");
+        scoreLabel = new JLabel("0");
+        add(title);
+        add(scoreLabel);
+    }
+
+    // 점수 업데이트 메서드
+    public void updateScore(int score) {
+        scoreLabel.setText("Score: " + score); // 점수 업데이트
+    }
+}
+
